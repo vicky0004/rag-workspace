@@ -6,15 +6,20 @@ import { showToast, showConfirmDialog } from '../lib/alerts';
 const ChatContext = createContext(null);
 
 export function ChatProvider({ children }) {
-  const { activeWorkspace } = useWorkspace();
+  const { activeWorkspace, initialLoaded: wsInitialLoaded } = useWorkspace();
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   const loadSessions = useCallback(async () => {
     if (!activeWorkspace) {
       setSessions([]);
       setActiveSessionId(null);
+      setLoading(false);
+      if (wsInitialLoaded) {
+        setInitialLoaded(true);
+      }
       return;
     }
 
@@ -31,12 +36,24 @@ export function ChatProvider({ children }) {
       console.error('Failed to load chat sessions:', err);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, wsInitialLoaded]);
 
   useEffect(() => {
+    if (!wsInitialLoaded) {
+      setInitialLoaded(false);
+      return;
+    }
+    if (!activeWorkspace) {
+      setSessions([]);
+      setActiveSessionId(null);
+      setLoading(false);
+      setInitialLoaded(true);
+      return;
+    }
     loadSessions();
-  }, [loadSessions]);
+  }, [loadSessions, wsInitialLoaded, activeWorkspace]);
 
   const selectSession = (sessionId) => {
     setActiveSessionId(sessionId);
@@ -117,6 +134,7 @@ export function ChatProvider({ children }) {
       activeSessionId,
       activeSession,
       loading,
+      initialLoaded,
       selectSession,
       startNewChat,
       renameSession,

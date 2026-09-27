@@ -9,9 +9,16 @@ export function WorkspaceProvider({ children }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [activeWorkspace, setActiveWorkspace] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
 
   const loadWorkspaces = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setWorkspaces([]);
+      setActiveWorkspace(null);
+      setLoading(false);
+      setInitialLoaded(false);
+      return;
+    }
     setLoading(true);
     try {
       const res = await getWorkspaces();
@@ -23,16 +30,20 @@ export function WorkspaceProvider({ children }) {
           const found = list.find(w => w.id === prev.id);
           return found || list[0] || null;
         }
-        return null;
+        return list[0] || null;
       });
     } catch (e) {
       console.error('Failed to load workspaces', e);
+      setWorkspaces([]);
+      setActiveWorkspace(null);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
   }, [user]);
 
   useEffect(() => {
+    setInitialLoaded(false);
     loadWorkspaces();
   }, [loadWorkspaces]);
 
@@ -73,6 +84,7 @@ export function WorkspaceProvider({ children }) {
       workspaces,
       activeWorkspace,
       loading,
+      initialLoaded,
       switchWorkspace,
       createNew,
       renameWs,
