@@ -127,12 +127,17 @@ export default function ChatPage({ onNavigate }) {
       setMessages(prev => prev.filter(m => m.id !== 'temp-user'));
     } finally {
       setSending(false);
-      textareaRef.current?.focus();
+      if (typeof window !== 'undefined' && window.innerWidth > 768) {
+        textareaRef.current?.focus();
+      }
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth <= 768 || ('ontouchstart' in window && window.innerWidth <= 1024));
+
+    // On mobile, Enter adds a new line; on desktop, Enter sends (unless Shift is held)
+    if (!isMobile && e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
