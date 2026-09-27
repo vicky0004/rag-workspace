@@ -6,20 +6,33 @@
 }
 
 .chat-header {
-  padding: 1.25rem 1.5rem;
+  padding: 1.1rem 1.5rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.chat-header-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .chat-header h2 {
-  margin: 0 0 0.2rem;
+  margin: 0 0 0.15rem;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-hint {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-muted);
 }
 

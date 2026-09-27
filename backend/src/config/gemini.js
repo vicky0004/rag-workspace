@@ -3,7 +3,6 @@ import { GoogleGenAI } from '@google/genai';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const GENERATION_MODELS = [
-  'gemini-3.8-flash',
   'gemini-flash-latest',
   'gemini-3.7-flash',
 ];

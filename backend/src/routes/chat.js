@@ -58,7 +58,6 @@ const TOOL_DEFINITIONS = [
 ];
 
 const TOOL_ALLOWLIST = new Set(TOOL_DEFINITIONS.map(t => t.name));
-// Support close_task alias
 TOOL_ALLOWLIST.add('close_task');
 
 // Zod schemas for tool arg validation
@@ -127,7 +126,6 @@ async function executeCompleteTask(workspaceId, args) {
   } else if (args.taskTitle) {
     query = query.ilike('title', `%${args.taskTitle}%`);
   } else {
-    // If no filter, pick the latest pending task
     query = query.eq('status', 'pending').order('created_at', { ascending: false }).limit(1);
   }
 
@@ -219,18 +217,16 @@ async function executeToolCall(toolName, args, workspaceId) {
 }
 
 // ============================================================
-// Tool call handler (validate, execute, audit log)
+// Tool call handler
 // ============================================================
 
 async function handleToolCall(toolName, rawArgs, workspaceId) {
-  // 1. Allowlist check
   if (!TOOL_ALLOWLIST.has(toolName)) {
     const result = { error: 'unknown tool' };
     await logToolCall(workspaceId, toolName, rawArgs, 'failed', result);
     return { status: 'failed', result };
   }
 
-  // 2. Arg validation
   const schema = TOOL_SCHEMAS[toolName];
   const parsed = schema ? schema.safeParse(rawArgs) : { success: true, data: rawArgs };
   if (!parsed.success) {
@@ -239,7 +235,6 @@ async function handleToolCall(toolName, rawArgs, workspaceId) {
     return { status: 'failed', result };
   }
 
-  // 3. Execute
   try {
     const result = await executeToolCall(toolName, parsed.data, workspaceId);
     await logToolCall(workspaceId, toolName, rawArgs, 'success', result);
@@ -284,6 +279,111 @@ async function retrieveChunks(workspaceId, queryEmbedding) {
 }
 
 // ============================================================
+// CHAT SESSIONS / CONVERSATIONS CRUD
+// ============================================================
+
+// GET /api/workspaces/:workspaceId/sessions — list chat sessions that have messages
+router.get('/:workspaceId/sessions', requireAuth, async (req, res) => {
+  const { workspaceId } = req.params;
+  const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
+  if (!workspace) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .select('id, title, created_at, updated_at, chat_messages(id)')
+      .eq('workspace_id', workspaceId)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Only return sessions that contain at least one message
+    const nonEmptySessions = (data || [])
+      .filter(s => s.chat_messages && s.chat_messages.length > 0)
+      .map(({ chat_messages, ...session }) => session);
+
+    res.json({ success: true, data: nonEmptySessions });
+  } catch (err) {
+    console.error('List chat sessions error:', err);
+    res.status(500).json({ success: false, message: 'Failed to fetch chat sessions' });
+  }
+});
+
+// POST /api/workspaces/:workspaceId/sessions — create a new chat session
+router.post('/:workspaceId/sessions', requireAuth, async (req, res) => {
+  const { workspaceId } = req.params;
+  const { title } = req.body;
+  const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
+  if (!workspace) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .insert({
+        workspace_id: workspaceId,
+        title: (title || 'New Chat').trim(),
+      })
+      .select('id, title, created_at, updated_at')
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({ success: true, data });
+  } catch (err) {
+    console.error('Create chat session error:', err);
+    res.status(500).json({ success: false, message: 'Failed to create chat session' });
+  }
+});
+
+// PATCH /api/workspaces/:workspaceId/sessions/:sessionId — rename session
+router.patch('/:workspaceId/sessions/:sessionId', requireAuth, async (req, res) => {
+  const { workspaceId, sessionId } = req.params;
+  const { title } = req.body;
+  const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
+  if (!workspace) return;
+
+  if (!title || !title.trim()) {
+    return res.status(400).json({ success: false, message: 'Title is required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('chat_sessions')
+      .update({ title: title.trim(), updated_at: new Date().toISOString() })
+      .eq('id', sessionId)
+      .eq('workspace_id', workspaceId)
+      .select('id, title, created_at, updated_at')
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Rename chat session error:', err);
+    res.status(500).json({ success: false, message: 'Failed to rename chat session' });
+  }
+});
+
+// DELETE /api/workspaces/:workspaceId/sessions/:sessionId — delete session
+router.delete('/:workspaceId/sessions/:sessionId', requireAuth, async (req, res) => {
+  const { workspaceId, sessionId } = req.params;
+  const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
+  if (!workspace) return;
+
+  try {
+    const { error } = await supabase
+      .from('chat_sessions')
+      .delete()
+      .eq('id', sessionId)
+      .eq('workspace_id', workspaceId);
+
+    if (error) throw error;
+    res.json({ success: true, message: 'Chat history deleted' });
+  } catch (err) {
+    console.error('Delete chat session error:', err);
+    res.status(500).json({ success: false, message: 'Failed to delete chat session' });
+  }
+});
+
+// ============================================================
 // POST /api/workspaces/:workspaceId/chat
 // ============================================================
 
@@ -294,20 +394,59 @@ router.post('/:workspaceId/chat', requireAuth, async (req, res) => {
   const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
   if (!workspace) return;
 
-  const { message } = req.body;
+  const { message, sessionId } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ success: false, message: 'Message is required' });
   }
 
+  // Ensure active session exists
+  let currentSessionId = sessionId;
+  if (!currentSessionId) {
+    const { data: newSession } = await supabase
+      .from('chat_sessions')
+      .insert({
+        workspace_id: workspaceId,
+        title: message.trim().slice(0, 35) || 'New Chat',
+      })
+      .select('id, title')
+      .single();
+    if (newSession) currentSessionId = newSession.id;
+  } else {
+    // If it's a new chat, auto-update title from first message
+    const { data: currentSession } = await supabase
+      .from('chat_sessions')
+      .select('title')
+      .eq('id', currentSessionId)
+      .single();
+
+    if (currentSession && (currentSession.title === 'New Chat' || !currentSession.title)) {
+      await supabase
+        .from('chat_sessions')
+        .update({
+          title: message.trim().slice(0, 35),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', currentSessionId);
+    } else {
+      await supabase
+        .from('chat_sessions')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('id', currentSessionId);
+    }
+  }
+
   // 2. Insert user message immediately
+  const userMsgPayload = {
+    workspace_id: workspaceId,
+    role: 'user',
+    content: message.trim(),
+  };
+  if (currentSessionId) userMsgPayload.session_id = currentSessionId;
+
   const { data: userMsg, error: userMsgErr } = await supabase
     .from('chat_messages')
-    .insert({
-      workspace_id: workspaceId,
-      role: 'user',
-      content: message.trim(),
-    })
-    .select('id, role, content, created_at')
+    .insert(userMsgPayload)
+    .select('id, role, content, session_id, created_at')
     .single();
 
   if (userMsgErr) {
@@ -371,11 +510,13 @@ Instructions:
       }
 
       // Log tool trace in chat
-      await supabase.from('chat_messages').insert({
+      const toolPayload = {
         workspace_id: workspaceId,
         role: 'tool',
         content: JSON.stringify(toolResults),
-      });
+      };
+      if (currentSessionId) toolPayload.session_id = currentSessionId;
+      await supabase.from('chat_messages').insert(toolPayload);
 
       // Re-call Gemini with tool results for final natural language reply
       const toolResultText = toolResults
@@ -411,7 +552,7 @@ Please provide a natural language confirmation to the user incorporating the too
       finalText = textParts.map(p => p.text).join('') || "I couldn't generate a response.";
     }
 
-    // 9. Extract citations from the answer text (e.g., [1], [2])
+    // 9. Extract citations from the answer text
     const citationRefs = [...finalText.matchAll(/\[(\d+)\]/g)].map(m => parseInt(m[1]) - 1);
     const citations = [...new Set(citationRefs)]
       .filter(i => i >= 0 && i < relevantChunks.length)
@@ -422,20 +563,24 @@ Please provide a natural language confirmation to the user incorporating the too
       }));
 
     // 10. Insert assistant message
+    const assistantPayload = {
+      workspace_id: workspaceId,
+      role: 'assistant',
+      content: finalText,
+      citations,
+    };
+    if (currentSessionId) assistantPayload.session_id = currentSessionId;
+
     const { data: assistantMsg } = await supabase
       .from('chat_messages')
-      .insert({
-        workspace_id: workspaceId,
-        role: 'assistant',
-        content: finalText,
-        citations,
-      })
-      .select('id, role, content, citations, created_at')
+      .insert(assistantPayload)
+      .select('id, role, content, citations, session_id, created_at')
       .single();
 
     res.json({
       success: true,
       data: {
+        sessionId: currentSessionId,
         userMessage: userMsg,
         assistantMessage: assistantMsg,
         chunks: relevantChunks.map(c => ({
@@ -462,21 +607,27 @@ Please provide a natural language confirmation to the user incorporating the too
 
 router.get('/:workspaceId/chat', requireAuth, async (req, res) => {
   const { workspaceId } = req.params;
+  const { sessionId } = req.query;
 
   const workspace = await verifyWorkspaceOwnership(workspaceId, req.user.id, res);
   if (!workspace) return;
 
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('chat_messages')
-      .select('id, role, content, citations, created_at')
+      .select('id, role, content, citations, session_id, created_at')
       .eq('workspace_id', workspaceId)
       .in('role', ['user', 'assistant'])
       .order('created_at', { ascending: true });
 
+    if (sessionId) {
+      query = query.eq('session_id', sessionId);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
 
-    res.json({ success: true, data });
+    res.json({ success: true, data: data || [] });
   } catch (err) {
     console.error('Chat history error:', err);
     res.status(500).json({ success: false, message: 'Failed to fetch chat history' });

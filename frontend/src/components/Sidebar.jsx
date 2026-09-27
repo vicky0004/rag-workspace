@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useChat } from '../contexts/ChatContext';
 import WorkspaceModal from './WorkspaceModal';
 import './Sidebar.css';
 
@@ -38,17 +39,34 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activePage, onNavigate }) {
   const { user, signOut } = useAuth();
-  const { workspaces, activeWorkspace, switchWorkspace, loading } = useWorkspace();
+  const { workspaces, activeWorkspace, switchWorkspace, loading: wsLoading } = useWorkspace();
+  const {
+    sessions,
+    activeSessionId,
+    selectSession,
+    startNewChat,
+    renameSession,
+    deleteSession,
+  } = useChat();
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
-  const dropdownRef = useRef(null);
+  const [openMenuSessionId, setOpenMenuSessionId] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [renameInput, setRenameInput] = useState('');
 
-  // Close dropdown on click outside
+  const dropdownRef = useRef(null);
+  const historyMenuRef = useRef(null);
+
+  // Close menus on click outside
   useEffect(() => {
     function handleClickOutside(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false);
+      }
+      if (historyMenuRef.current && !historyMenuRef.current.contains(e.target)) {
+        setOpenMenuSessionId(null);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -65,6 +83,36 @@ export default function Sidebar({ activePage, onNavigate }) {
     setModalMode('manage');
     setModalOpen(true);
     setDropdownOpen(false);
+  };
+
+  const handleSelectChat = (sessionId) => {
+    selectSession(sessionId);
+    onNavigate('chat');
+  };
+
+  const handleNewChat = async () => {
+    await startNewChat();
+    onNavigate('chat');
+  };
+
+  const handleStartRename = (session, e) => {
+    e.stopPropagation();
+    setEditingSessionId(session.id);
+    setRenameInput(session.title);
+    setOpenMenuSessionId(null);
+  };
+
+  const handleSaveRename = async (sessionId, e) => {
+    if (e) e.stopPropagation();
+    if (!renameInput.trim()) return;
+    await renameSession(sessionId, renameInput.trim());
+    setEditingSessionId(null);
+  };
+
+  const handleDeleteChat = async (session, e) => {
+    e.stopPropagation();
+    setOpenMenuSessionId(null);
+    await deleteSession(session.id, session.title);
   };
 
   return (
@@ -102,7 +150,7 @@ export default function Sidebar({ activePage, onNavigate }) {
               {activeWorkspace?.name ? activeWorkspace.name.slice(0, 2).toUpperCase() : 'WS'}
             </div>
             <div className="ws-trigger-info">
-              <span className="ws-trigger-name">{activeWorkspace?.name || (loading ? 'Loading…' : 'Select Workspace')}</span>
+              <span className="ws-trigger-name">{activeWorkspace?.name || (wsLoading ? 'Loading…' : 'Select Workspace')}</span>
               <span className="ws-trigger-count">{workspaces.length} workspace{workspaces.length !== 1 ? 's' : ''}</span>
             </div>
             <svg className={`ws-chevron ${dropdownOpen ? 'ws-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -165,8 +213,13 @@ export default function Sidebar({ activePage, onNavigate }) {
           {NAV_ITEMS.map(item => (
             <button
               key={item.id}
-              className={`nav-item ${activePage === item.id ? 'nav-item--active' : ''}`}
-              onClick={() => onNavigate(item.id)}
+              className={`nav-item ${activePage === item.id && (item.id !== 'chat' || !activeSessionId) ? 'nav-item--active' : ''}`}
+              onClick={() => {
+                if (item.id === 'chat') {
+                  startNewChat();
+                }
+                onNavigate(item.id);
+              }}
               id={`nav-${item.id}`}
             >
               {item.icon}
@@ -174,6 +227,126 @@ export default function Sidebar({ activePage, onNavigate }) {
             </button>
           ))}
         </nav>
+
+        {/* Chat History Section (Below Navigation) */}
+        <div className="sidebar-history-section" ref={historyMenuRef}>
+          <div className="history-header">
+            <span className="history-section-label">Chat History</span>
+            <button
+              className="btn-new-chat-icon"
+              onClick={handleNewChat}
+              title="Start new chat"
+              id="btn-new-chat"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div className="history-list">
+            {sessions.length === 0 ? (
+              <p className="history-empty">No previous chats</p>
+            ) : (
+              sessions.map(session => {
+                const isActive = activePage === 'chat' && activeSessionId === session.id;
+                const isEditing = editingSessionId === session.id;
+                const isMenuOpen = openMenuSessionId === session.id;
+
+                if (isEditing) {
+                  return (
+                    <div key={session.id} className="history-item history-item--editing">
+                      <input
+                        type="text"
+                        value={renameInput}
+                        onChange={e => setRenameInput(e.target.value)}
+                        autoFocus
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleSaveRename(session.id, e);
+                          if (e.key === 'Escape') setEditingSessionId(null);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        className="history-rename-input"
+                      />
+                      <button
+                        className="btn-icon btn-icon--save btn-icon-xs"
+                        onClick={e => handleSaveRename(session.id, e)}
+                        title="Save"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        className="btn-icon btn-icon-xs"
+                        onClick={e => { e.stopPropagation(); setEditingSessionId(null); }}
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={session.id}
+                    className={`history-item ${isActive ? 'history-item--active' : ''}`}
+                    onClick={() => handleSelectChat(session.id)}
+                    title={session.title}
+                  >
+                    <svg className="history-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span className="history-title">{session.title}</span>
+
+                    {/* Three dots button */}
+                    <div className="history-actions" onClick={e => e.stopPropagation()}>
+                      <button
+                        className={`history-dots-btn ${isMenuOpen ? 'history-dots-btn--open' : ''}`}
+                        onClick={e => {
+                          e.stopPropagation();
+                          setOpenMenuSessionId(isMenuOpen ? null : session.id);
+                        }}
+                        title="Options"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/>
+                        </svg>
+                      </button>
+
+                      {/* Three-dots menu (Only Rename and Delete) */}
+                      {isMenuOpen && (
+                        <div className="history-menu-popover">
+                          <button
+                            className="history-menu-item"
+                            onClick={e => handleStartRename(session, e)}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            </svg>
+                            <span>Rename</span>
+                          </button>
+                          <button
+                            className="history-menu-item history-menu-item--danger"
+                            onClick={e => handleDeleteChat(session, e)}
+                          >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/>
+                              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                              <path d="M10 11v6M14 11v6"/>
+                              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
 
         {/* Quick Action in Sidebar */}
         <div className="sidebar-quick-action">

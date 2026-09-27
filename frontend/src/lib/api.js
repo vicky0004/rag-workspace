@@ -49,10 +49,22 @@ export const updateTask = (wsId, taskId, updates) =>
 export const deleteTask = (wsId, taskId) =>
   api.delete(`/api/workspaces/${wsId}/tasks/${taskId}`).then(r => r.data);
 
-// Chat
-export const getChatHistory = (wsId) => api.get(`/api/workspaces/${wsId}/chat`).then(r => r.data);
-export const sendMessage = (wsId, message) =>
-  api.post(`/api/workspaces/${wsId}/chat`, { message }).then(r => r.data);
+// Chat Sessions & Messages
+export const getChatSessions = (wsId) =>
+  api.get(`/api/workspaces/${wsId}/sessions`).then(r => r.data);
+export const createChatSession = (wsId, title) =>
+  api.post(`/api/workspaces/${wsId}/sessions`, { title }).then(r => r.data);
+export const renameChatSession = (wsId, sessionId, title) =>
+  api.patch(`/api/workspaces/${wsId}/sessions/${sessionId}`, { title }).then(r => r.data);
+export const deleteChatSession = (wsId, sessionId) =>
+  api.delete(`/api/workspaces/${wsId}/sessions/${sessionId}`).then(r => r.data);
+
+export const getChatHistory = (wsId, sessionId) => {
+  const params = sessionId ? { sessionId } : {};
+  return api.get(`/api/workspaces/${wsId}/chat`, { params }).then(r => r.data);
+};
+export const sendMessage = (wsId, message, sessionId) =>
+  api.post(`/api/workspaces/${wsId}/chat`, { message, sessionId }).then(r => r.data);
 
 // Dashboard
 export const getDashboard = (wsId) => api.get(`/api/workspaces/${wsId}/dashboard`).then(r => r.data);

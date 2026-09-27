@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getChatHistory, sendMessage as sendMsg } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { useChat } from '../contexts/ChatContext';
 import './ChatPage.css';
 
 function CitationBadge({ citation }) {
@@ -46,28 +47,44 @@ function Message({ msg }) {
 
 export default function ChatPage() {
   const { activeWorkspace } = useWorkspace();
+  const {
+    activeSessionId,
+    activeSession,
+    startNewChat,
+    selectSession,
+    updateSessionFromMessage,
+    refreshSessions,
+  } = useChat();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const textareaRef = useRef(null);
 
   const loadHistory = useCallback(async () => {
     if (!activeWorkspace) return;
+    if (!activeSessionId) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await getChatHistory(activeWorkspace.id);
+      const res = await getChatHistory(activeWorkspace.id, activeSessionId);
       setMessages(res.data || []);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [activeWorkspace?.id]);
+  }, [activeWorkspace?.id, activeSessionId]);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -81,19 +98,32 @@ export default function ChatPage() {
     setSending(true);
 
     // Optimistically add user message
-    const optimisticUser = { id: 'temp-user', role: 'user', content: userText, created_at: new Date().toISOString(), citations: [] };
+    const optimisticUser = {
+      id: 'temp-user',
+      role: 'user',
+      content: userText,
+      created_at: new Date().toISOString(),
+      citations: [],
+    };
     setMessages(prev => [...prev, optimisticUser]);
 
     try {
-      const res = await sendMsg(activeWorkspace.id, userText);
-      const { userMessage, assistantMessage } = res.data;
+      const res = await sendMsg(activeWorkspace.id, userText, activeSessionId);
+      const { userMessage, assistantMessage, sessionId } = res.data;
+
+      if (sessionId) {
+        selectSession(sessionId);
+        updateSessionFromMessage(sessionId, userText.slice(0, 32));
+        refreshSessions();
+      }
+
       setMessages(prev => [
         ...prev.filter(m => m.id !== 'temp-user'),
         userMessage,
         assistantMessage,
       ]);
     } catch (e) {
-      setError(e.response?.data?.message || 'Failed to send message. Please try again.');
+      setError(e.response?.data?.message || 'Failed to process message. Please try again.');
       setMessages(prev => prev.filter(m => m.id !== 'temp-user'));
     } finally {
       setSending(false);
@@ -120,18 +150,29 @@ export default function ChatPage() {
   return (
     <div className="chat-page">
       <div className="chat-header">
-        <div>
-          <h2>Chat — {activeWorkspace.name}</h2>
-          <span className="chat-hint">Ask questions grounded in your workspace documents</span>
+        <div className="chat-header-left">
+          <h2>{activeSession?.title || 'Chat'}</h2>
+          <span className="chat-hint">{activeWorkspace.name} • Grounded in documents</span>
         </div>
+        <button
+          className="btn-secondary btn-sm"
+          onClick={startNewChat}
+          title="Start a new conversation"
+          id="btn-header-new-chat"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>New Chat</span>
+        </button>
       </div>
 
       <div className="chat-messages">
-        {loading && <div className="chat-loading"><span className="spinner" /> Loading history…</div>}
+        {loading && <div className="chat-loading"><span className="spinner" /> Loading conversation…</div>}
         {!loading && messages.length === 0 && (
           <div className="chat-empty-state">
             <div className="empty-icon">🔍</div>
-            <p>No messages yet. Ask any question about your uploaded documents!</p>
+            <p>Start asking questions grounded in your workspace documents!</p>
           </div>
         )}
         {messages.map(msg => <Message key={msg.id} msg={msg} />)}

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { WorkspaceProvider } from './contexts/WorkspaceContext';
+import { ChatProvider } from './contexts/ChatContext';
 import AuthPage from './pages/AuthPage';
 import ChatPage from './pages/ChatPage';
 import DocumentsPage from './pages/DocumentsPage';
@@ -42,12 +43,14 @@ function AppContent() {
 
   return (
     <WorkspaceProvider>
-      <div className="app-shell">
-        <Sidebar activePage={activePage} onNavigate={setActivePage} />
-        <main className="app-main">
-          {pages[activePage]}
-        </main>
-      </div>
+      <ChatProvider>
+        <div className="app-shell">
+          <Sidebar activePage={activePage} onNavigate={setActivePage} />
+          <main className="app-main">
+            {pages[activePage]}
+          </main>
+        </div>
+      </ChatProvider>
     </WorkspaceProvider>
   );
 }
