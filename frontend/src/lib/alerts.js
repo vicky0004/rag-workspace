@@ -50,15 +50,21 @@ export async function showConfirmDialog({
  * Modern Toast Notification
  */
 export function showToast({ title, icon = 'success', timer = 2500 }) {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const Toast = Swal.mixin({
     toast: true,
-    position: 'top-end',
+    position: isMobile ? 'top' : 'top-end',
     showConfirmButton: false,
     timer,
     timerProgressBar: true,
     background: '#1e253a',
     color: '#e8eaf2',
     iconColor: icon === 'success' ? '#22c55e' : icon === 'error' ? '#ef4444' : '#6366f1',
+    customClass: {
+      container: isMobile ? 'swal-mobile-toast-container' : '',
+      popup: 'swal-custom-toast',
+      title: 'swal-custom-toast-title',
+    },
     didOpen: (toast) => {
       toast.addEventListener('mouseenter', Swal.stopTimer);
       toast.addEventListener('mouseleave', Swal.resumeTimer);

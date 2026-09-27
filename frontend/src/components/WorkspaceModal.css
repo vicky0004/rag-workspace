@@ -38,25 +38,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem 0;
+  padding: 0.85rem 1.15rem 0;
   border-bottom: 1px solid var(--border);
+  gap: 0.5rem;
+  flex-wrap: nowrap;
 }
 
 .ws-modal-tabs {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: nowrap;
 }
 
 .ws-tab-btn {
   background: none;
   border: none;
-  padding: 0.6rem 0.85rem;
+  padding: 0.6rem 0.75rem;
   font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ws-tab-btn:hover {
@@ -209,6 +216,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
 }
 
 .ws-card-name {
@@ -221,13 +229,17 @@
 }
 
 .active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.68rem;
   font-weight: 600;
-  padding: 0.15rem 0.45rem;
+  padding: 0.15rem 0.5rem;
   background: rgba(34, 197, 94, 0.12);
   color: #22c55e;
   border: 1px solid rgba(34, 197, 94, 0.25);
   border-radius: 100px;
+  flex-shrink: 0;
 }
 
 .ws-card-date {
@@ -238,22 +250,26 @@
 .ws-card-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin-left: 0.75rem;
+  flex-shrink: 0;
 }
 
 .ws-edit-inline {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  width: 100%;
 }
 
 .ws-edit-inline input {
-  padding: 0.3rem 0.5rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.6rem;
   font-size: 0.85rem;
   background: var(--input-bg);
   border: 1px solid var(--accent);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-primary);
   outline: none;
 }
@@ -266,34 +282,107 @@
 /* Mobile Responsive */
 @media (max-width: 640px) {
   .ws-modal-backdrop {
-    padding: 0.75rem;
+    padding: 0.5rem;
+    align-items: flex-end;
   }
 
   .ws-modal {
-    max-height: 90dvh;
-    border-radius: 14px;
+    max-height: 88dvh;
+    border-radius: 20px 20px 14px 14px;
+    width: 100%;
+    margin-bottom: 0;
   }
 
   .ws-modal-header {
-    padding: 0.75rem 1rem 0;
+    padding: 0.65rem 0.85rem 0;
+    gap: 0.25rem;
   }
 
   .ws-tab-btn {
-    padding: 0.5rem 0.65rem;
-    font-size: 0.82rem;
+    padding: 0.55rem 0.45rem;
+    font-size: 0.8rem;
   }
 
   .ws-modal-body {
-    padding: 1rem;
+    padding: 0.85rem;
+    max-height: 72dvh;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ws-manage-list {
+    gap: 0.75rem;
+  }
+
+  .ws-manage-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.85rem;
+    gap: 0.75rem;
+  }
+
+  .ws-card-main {
+    width: 100%;
+  }
+
+  .ws-card-avatar {
+    width: 38px;
+    height: 38px;
+    font-size: 0.82rem;
   }
 
   .ws-card-name {
-    max-width: 110px;
-    font-size: 0.86rem;
+    font-size: 0.92rem;
+    max-width: 100%;
   }
 
   .ws-card-actions {
-    margin-left: 0.35rem;
-    gap: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    margin-left: 0;
+    padding-top: 0.55rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    gap: 0.5rem;
+  }
+
+  .btn-switch-ws {
+    margin-right: auto;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .ws-card-actions .btn-icon {
+    width: 36px;
+    height: 36px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .ws-edit-inline {
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .ws-edit-inline input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.88rem;
+  }
+
+  .ws-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .ws-modal-actions button {
+    flex: 1;
+    height: 42px;
+    justify-content: center;
+    font-size: 0.9rem;
   }
 }

@@ -78,12 +78,14 @@ export default function Sidebar({ activePage, onNavigate, mobileOpen, onCloseMob
     setModalMode('create');
     setModalOpen(true);
     setDropdownOpen(false);
+    if (onCloseMobile) onCloseMobile();
   };
 
   const openManageModal = () => {
     setModalMode('manage');
     setModalOpen(true);
     setDropdownOpen(false);
+    if (onCloseMobile) onCloseMobile();
   };
 
   const handleSelectChat = (sessionId) => {
@@ -211,6 +213,7 @@ export default function Sidebar({ activePage, onNavigate, mobileOpen, onCloseMob
                       onClick={() => {
                         switchWorkspace(ws);
                         setDropdownOpen(false);
+                        if (onCloseMobile) onCloseMobile();
                       }}
                     >
                       <span className="dropdown-ws-dot" />

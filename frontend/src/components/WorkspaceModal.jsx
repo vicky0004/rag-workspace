@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
 import { showConfirmDialog, showToast } from '../lib/alerts';
 import './WorkspaceModal.css';
@@ -11,6 +11,20 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
   const [editName, setEditName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const inputRef = useRef(null);
+
+  // Sync active tab whenever modal opens with a specific defaultMode
+  useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode);
+      setError('');
+      setName('');
+      setEditingId(null);
+      if (defaultMode === 'create' && typeof window !== 'undefined' && window.innerWidth > 768) {
+        setTimeout(() => inputRef.current?.focus(), 60);
+      }
+    }
+  }, [isOpen, defaultMode]);
 
   if (!isOpen) return null;
 
@@ -87,7 +101,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
               className={`ws-tab-btn ${mode === 'manage' ? 'ws-tab-btn--active' : ''}`}
               onClick={() => { setMode('manage'); setError(''); }}
             >
-              Manage Workspaces ({workspaces.length})
+              Manage ({workspaces.length})
             </button>
           </div>
           <button className="ws-modal-close" onClick={onClose} title="Close">
@@ -106,12 +120,13 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
               <div className="form-group">
                 <label htmlFor="ws-name-input">Workspace Name</label>
                 <input
+                  ref={inputRef}
                   id="ws-name-input"
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g., Financial Reports, Research Project..."
-                  autoFocus
+                  autoFocus={typeof window !== 'undefined' && window.innerWidth > 768}
                   required
                 />
                 <span className="form-hint">
@@ -191,7 +206,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
                     <div className="ws-card-actions">
                       {!isActive && (
                         <button
-                          className="btn-secondary btn-sm"
+                          className="btn-secondary btn-sm btn-switch-ws"
                           onClick={() => { switchWorkspace(ws); onClose(); }}
                         >
                           Switch
@@ -203,7 +218,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
                           onClick={() => handleStartRename(ws)}
                           title="Rename workspace"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                           </svg>
@@ -215,7 +230,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
                           onClick={() => handleDelete(ws.id, ws.name)}
                           title="Delete workspace"
                         >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
                             <path d="M10 11v6M14 11v6"/>
