@@ -27,17 +27,18 @@ const NAV_ITEMS = [
   },
   {
     id: 'dashboard',
-    label: 'Dashboard',
+    label: 'Statistics',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        <path d="M18 20V10"/>
+        <path d="M12 20V4"/>
+        <path d="M6 20v-6"/>
       </svg>
     ),
   },
 ];
 
-export default function Sidebar({ activePage, onNavigate }) {
+export default function Sidebar({ activePage, onNavigate, mobileOpen, onCloseMobile }) {
   const { user, signOut } = useAuth();
   const { workspaces, activeWorkspace, switchWorkspace, loading: wsLoading } = useWorkspace();
   const {
@@ -88,11 +89,21 @@ export default function Sidebar({ activePage, onNavigate }) {
   const handleSelectChat = (sessionId) => {
     selectSession(sessionId);
     onNavigate('chat');
+    if (onCloseMobile) onCloseMobile();
   };
 
   const handleNewChat = async () => {
     await startNewChat();
     onNavigate('chat');
+    if (onCloseMobile) onCloseMobile();
+  };
+
+  const handleNav = (pageId) => {
+    if (pageId === 'chat') {
+      startNewChat();
+    }
+    onNavigate(pageId);
+    if (onCloseMobile) onCloseMobile();
   };
 
   const handleStartRename = (session, e) => {
@@ -117,33 +128,53 @@ export default function Sidebar({ activePage, onNavigate }) {
 
   return (
     <>
-      <aside className="sidebar">
+      {/* Mobile Drawer Backdrop */}
+      {mobileOpen && (
+        <div
+          className="sidebar-backdrop"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside className={`sidebar ${mobileOpen ? 'sidebar--mobile-open' : ''}`}>
         {/* Brand Header */}
         <div className="sidebar-brand">
           <div className="brand-logo">
-  <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-    <rect width="40" height="40" rx="10" fill="#000000"/>
-
-    <path
-      d="M10 28L20 12L30 28"
-      stroke="#D4AF37"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-
-    <path
-      d="M14 22H26"
-      stroke="#D4AF37"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-  </svg>
-</div>
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="#000000"/>
+              <path
+                d="M10 28L20 12L30 28"
+                stroke="#D4AF37"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M14 22H26"
+                stroke="#D4AF37"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
           <div className="brand-text">
             <span className="brand-title">RAG Assistant</span>
             <span className="brand-subtitle">Smart Documents</span>
           </div>
+          {onCloseMobile && (
+            <button
+              className="btn-mobile-close"
+              onClick={onCloseMobile}
+              title="Close sidebar"
+              aria-label="Close sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Workspace Selector Dropdown */}
@@ -222,12 +253,7 @@ export default function Sidebar({ activePage, onNavigate }) {
             <button
               key={item.id}
               className={`nav-item ${activePage === item.id && (item.id !== 'chat' || !activeSessionId) ? 'nav-item--active' : ''}`}
-              onClick={() => {
-                if (item.id === 'chat') {
-                  startNewChat();
-                }
-                onNavigate(item.id);
-              }}
+              onClick={() => handleNav(item.id)}
               id={`nav-${item.id}`}
             >
               {item.icon}

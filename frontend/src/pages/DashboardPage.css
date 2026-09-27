@@ -310,3 +310,56 @@
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .dashboard-page {
+    padding: 1rem;
+    gap: 1.15rem;
+  }
+
+  .stat-cards {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .task-item {
+    padding: 0.65rem 0.75rem;
+    gap: 0.55rem;
+  }
+
+  .task-title {
+    font-size: 0.85rem;
+  }
+
+  .task-date {
+    display: none;
+  }
+
+  .tool-call-header {
+    padding: 0.75rem 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .tool-name {
+    font-size: 0.8rem;
+  }
+
+  .tool-date {
+    font-size: 0.7rem;
+  }
+
+  .tool-call-detail {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+}

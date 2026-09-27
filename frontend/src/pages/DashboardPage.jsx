@@ -51,7 +51,7 @@ export default function DashboardPage() {
       const res = await getDashboard(activeWorkspace.id);
       setData(res.data);
     } catch (e) {
-      setError('Failed to load dashboard');
+      setError('Failed to load statistics');
     } finally {
       setLoading(false);
     }
@@ -112,12 +112,12 @@ export default function DashboardPage() {
     return (
       <div className="dash-empty-state">
         <div className="empty-icon">📊</div>
-        <p>Select a workspace to view its dashboard</p>
+        <p>Select a workspace to view its statistics</p>
       </div>
     );
   }
 
-  if (loading) return <div className="dash-loading"><span className="spinner" /> Loading dashboard…</div>;
+  if (loading) return <div className="dash-loading"><span className="spinner" /> Loading statistics…</div>;
   if (error) return <div className="dash-error">{error}</div>;
   if (!data) return null;
 
@@ -130,7 +130,7 @@ export default function DashboardPage() {
     <div className="dashboard-page">
       <div className="dash-header">
         <h2>{activeWorkspace.name}</h2>
-        <p className="dash-subtitle">Workspace overview & activity</p>
+        <p className="dash-subtitle">Workspace statistics & activity overview</p>
       </div>
 
       {/* Stat cards */}

@@ -45,7 +45,7 @@ function Message({ msg }) {
   );
 }
 
-export default function ChatPage() {
+export default function ChatPage({ onNavigate }) {
   const { activeWorkspace } = useWorkspace();
   const {
     activeSessionId,
@@ -150,21 +150,38 @@ export default function ChatPage() {
   return (
     <div className="chat-page">
       <div className="chat-header">
+        <div className="chat-header-actions-left mobile-only-action">
+          <button
+            className="btn-secondary btn-sm btn-header-add-file"
+            onClick={() => onNavigate?.('documents')}
+            title="Navigate to Documents to add or upload files"
+            id="btn-header-add-file"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Add File</span>
+          </button>
+        </div>
+
         <div className="chat-header-left">
           <h2>{activeSession?.title || 'Chat'}</h2>
           <span className="chat-hint">{activeWorkspace.name} • Grounded in documents</span>
         </div>
-        <button
-          className="btn-secondary btn-sm"
-          onClick={startNewChat}
-          title="Start a new conversation"
-          id="btn-header-new-chat"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          <span>New Chat</span>
-        </button>
+
+        <div className="chat-header-actions-right">
+          <button
+            className="btn-secondary btn-sm"
+            onClick={startNewChat}
+            title="Start a new conversation"
+            id="btn-header-new-chat"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>New Chat</span>
+          </button>
+        </div>
       </div>
 
       <div className="chat-messages">
@@ -173,6 +190,7 @@ export default function ChatPage() {
           <div className="chat-empty-state">
             <div className="empty-icon">🔍</div>
             <p>Start asking questions grounded in your workspace documents!</p>
+            <span className="chat-empty-hint">Press Enter to send • Shift+Enter for new line</span>
           </div>
         )}
         {messages.map(msg => <Message key={msg.id} msg={msg} />)}
@@ -189,12 +207,25 @@ export default function ChatPage() {
       {error && <div className="chat-error">{error}</div>}
 
       <div className="chat-input-area">
+        <button
+          type="button"
+          className="btn-secondary btn-add-file-desktop"
+          onClick={() => onNavigate?.('documents')}
+          title="Go to Documents to add or upload files"
+          id="btn-desktop-add-file"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          <span>Add File</span>
+        </button>
+
         <textarea
           ref={textareaRef}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask something about your documents… (Enter to send, Shift+Enter for new line)"
+          placeholder="Ask From RAG"
           rows={1}
           className="chat-textarea"
           disabled={sending}
@@ -208,8 +239,8 @@ export default function ChatPage() {
         >
           {sending ? <span className="spinner spinner--sm" /> : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"/>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
           )}
         </button>
