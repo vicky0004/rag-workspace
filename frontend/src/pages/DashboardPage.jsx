@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getDashboard, updateTask, deleteTask } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { showConfirmDialog, showToast } from '../lib/alerts';
 import './DashboardPage.css';
 
 function ToolCallRow({ tc }) {
@@ -69,22 +70,38 @@ export default function DashboardPage() {
 
     try {
       await updateTask(activeWorkspace.id, task.id, { status: newStatus });
+      showToast({
+        title: newStatus === 'completed' ? 'Task marked completed' : 'Task marked pending',
+        icon: newStatus === 'completed' ? 'success' : 'info',
+      });
     } catch (e) {
       console.error('Failed to update task:', e);
       loadData();
     }
   };
 
-  const handleDeleteTask = async (taskId) => {
-    if (!activeWorkspace || !window.confirm('Delete this task?')) return;
+  const handleDeleteTask = async (task) => {
+    if (!activeWorkspace) return;
+
+    const confirmed = await showConfirmDialog({
+      title: 'Delete Task?',
+      text: `Are you sure you want to delete "${task.title}"?`,
+      confirmText: 'Yes, delete task',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     // Optimistic update
     setData(prev => ({
       ...prev,
-      tasks: prev.tasks.filter(t => t.id !== taskId),
+      tasks: prev.tasks.filter(t => t.id !== task.id),
     }));
 
     try {
-      await deleteTask(activeWorkspace.id, taskId);
+      await deleteTask(activeWorkspace.id, task.id);
+      showToast({ title: 'Task deleted', icon: 'info' });
     } catch (e) {
       console.error('Failed to delete task:', e);
       loadData();
@@ -189,7 +206,7 @@ export default function DashboardPage() {
                   <span className="task-date">{new Date(task.created_at).toLocaleDateString()}</span>
                   <button
                     className="btn-icon btn-icon--danger task-delete-btn"
-                    onClick={() => handleDeleteTask(task.id)}
+                    onClick={() => handleDeleteTask(task)}
                     title="Delete task"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

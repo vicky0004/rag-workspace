@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { showConfirmDialog, showToast } from '../lib/alerts';
 import './WorkspaceModal.css';
 
 export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create' }) {
@@ -20,6 +21,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
     setError('');
     try {
       await createNew(name.trim());
+      showToast({ title: `Workspace "${name.trim()}" created!` });
       setName('');
       onClose();
     } catch (err) {
@@ -38,6 +40,7 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
     if (!editName.trim()) return;
     try {
       await renameWs(wsId, editName.trim());
+      showToast({ title: 'Workspace renamed successfully' });
       setEditingId(null);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to rename workspace');
@@ -49,11 +52,20 @@ export default function WorkspaceModal({ isOpen, onClose, defaultMode = 'create'
       setError('You must keep at least one workspace.');
       return;
     }
-    if (!window.confirm(`Are you sure you want to delete "${wsName}"? All documents, tasks, and chat history in this workspace will be deleted.`)) {
-      return;
-    }
+
+    const confirmed = await showConfirmDialog({
+      title: `Delete "${wsName}"?`,
+      text: 'All documents, tasks, and chat history in this workspace will be permanently removed.',
+      confirmText: 'Yes, delete workspace',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     try {
       await deleteWs(wsId);
+      showToast({ title: `Workspace "${wsName}" deleted`, icon: 'info' });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete workspace');
     }

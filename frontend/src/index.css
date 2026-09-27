@@ -378,3 +378,43 @@ button, input, textarea, select {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ============================================================
+   SweetAlert2 Custom Styles
+   ============================================================ */
+.swal2-popup.swal-custom-popup {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  padding: 1.5rem !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35) !important;
+  color: var(--text-primary) !important;
+}
+
+.swal-custom-title {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  padding: 0 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.swal-custom-html {
+  font-size: 0.92rem !important;
+  color: var(--text-secondary) !important;
+  margin: 0.5rem 0 1.25rem !important;
+}
+
+.swal2-actions {
+  display: flex !important;
+  gap: 0.75rem !important;
+  margin-top: 1rem !important;
+}
+
+.swal-btn {
+  padding: 0.625rem 1.25rem !important;
+  font-size: 0.9rem !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+}
+

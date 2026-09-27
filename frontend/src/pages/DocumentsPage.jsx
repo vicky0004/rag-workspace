@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getDocuments, uploadDocument, deleteDocument } from '../lib/api';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import { showConfirmDialog, showToast } from '../lib/alerts';
 import './DocumentsPage.css';
 
 function StatusBadge({ status }) {
@@ -58,6 +59,7 @@ export default function DocumentsPage() {
             const exists = prev.find(d => d.id === res.data.id);
             return exists ? prev : [res.data, ...prev];
           });
+          showToast({ title: `Uploaded "${file.name}" — processing embeddings` });
         }
       } catch (e) {
         setError(e.response?.data?.message || `Failed to upload ${file.name}`);
@@ -65,15 +67,24 @@ export default function DocumentsPage() {
     }
 
     setUploading(false);
-    // Refresh to catch any status updates
     setTimeout(loadDocs, 1000);
   };
 
-  const handleDelete = async (docId) => {
-    if (!window.confirm('Delete this document and all its data?')) return;
+  const handleDelete = async (doc) => {
+    const confirmed = await showConfirmDialog({
+      title: `Delete "${doc.filename}"?`,
+      text: 'This document and all its indexed vector chunks will be permanently deleted.',
+      confirmText: 'Yes, delete document',
+      cancelText: 'Cancel',
+      danger: true,
+    });
+
+    if (!confirmed) return;
+
     try {
-      await deleteDocument(activeWorkspace.id, docId);
-      setDocuments(prev => prev.filter(d => d.id !== docId));
+      await deleteDocument(activeWorkspace.id, doc.id);
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+      showToast({ title: `Document "${doc.filename}" deleted`, icon: 'info' });
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to delete document');
     }
@@ -170,7 +181,7 @@ export default function DocumentsPage() {
                   <td>
                     <button
                       className="btn-icon btn-icon--danger"
-                      onClick={() => handleDelete(doc.id)}
+                      onClick={() => handleDelete(doc)}
                       title="Delete document"
                       id={`btn-delete-doc-${doc.id}`}
                     >
