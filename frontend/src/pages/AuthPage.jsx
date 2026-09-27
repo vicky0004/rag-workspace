@@ -5,6 +5,7 @@ import './AuthPage.css';
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState('login'); // 'login' | 'register'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,7 +23,7 @@ export default function AuthPage() {
         const { error } = await signIn(email, password);
         if (error) throw error;
       } else {
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(email, password, name);
         if (error) throw error;
         setInfo('Account created! Check your email to confirm, then log in.');
         setMode('login');
@@ -38,23 +39,27 @@ export default function AuthPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="12" fill="url(#grad)"/>
-            <path d="M10 28L20 12L30 28" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            <path d="M14 22H26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-            <defs>
-              <linearGradient id="grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                <stop stopColor="#6366f1"/>
-                <stop offset="1" stopColor="#a855f7"/>
-              </linearGradient>
-            </defs>
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+            <rect width="40" height="40" rx="10" fill="#000000" />
+
+            <path
+              d="M10 28L20 12L30 28"
+              stroke="#D4AF37"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+
+            <path
+              d="M14 22H26"
+              stroke="#D4AF37"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
           </svg>
           <span>RAG Workspace</span>
         </div>
 
-        <h1 className="auth-title">
-          {mode === 'login' ? 'Welcome back' : 'Create account'}
-        </h1>
         <p className="auth-subtitle">
           {mode === 'login'
             ? 'Sign in to your workspace'
@@ -65,6 +70,20 @@ export default function AuthPage() {
         {info && <div className="auth-alert auth-alert--info">{info}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
+          {mode === 'register' && (
+            <div className="form-group">
+              <label htmlFor="name">Name</label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your full name"
+                required
+                autoComplete="name"
+              />
+            </div>
+          )}
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -102,7 +121,11 @@ export default function AuthPage() {
           <button
             type="button"
             className="link-btn"
-            onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); setInfo(''); }}
+            onClick={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+              setError('');
+              setInfo('');
+            }}
           >
             {mode === 'login' ? 'Sign up' : 'Sign in'}
           </button>

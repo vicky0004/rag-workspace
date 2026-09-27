@@ -369,10 +369,16 @@ export default function Sidebar({ activePage, onNavigate }) {
         {/* User Footer */}
         <div className="sidebar-footer">
           <div className="user-info">
-            <div className="user-avatar">{user?.email?.[0]?.toUpperCase()}</div>
+            <div className="user-avatar">
+              {(user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email)?.[0]?.toUpperCase() || 'U'}
+            </div>
             <div className="user-meta">
-              <span className="user-email">{user?.email}</span>
-              <span className="user-plan">Free Workspace</span>
+              <span className="user-email">
+                {user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email}
+              </span>
+              <span className="user-plan">
+                {user?.user_metadata?.name || user?.user_metadata?.full_name ? user?.email : 'Free Workspace'}
+              </span>
             </div>
           </div>
           <button className="signout-btn" onClick={signOut} title="Sign out" id="btn-sign-out">
