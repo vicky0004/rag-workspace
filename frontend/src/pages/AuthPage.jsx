@@ -29,7 +29,12 @@ export default function AuthPage() {
         setMode('login');
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed');
+      const msg = err.message || 'Authentication failed';
+      if (/email not confirmed/i.test(msg)) {
+        setError('Email not verified');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
