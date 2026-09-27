@@ -22,7 +22,20 @@ export function WorkspaceProvider({ children }) {
     setLoading(true);
     try {
       const res = await getWorkspaces();
-      const list = res.data || [];
+      let list = res.data || [];
+
+      // If user has no workspace (e.g. first-time user), create a default named workspace
+      if (list.length === 0) {
+        try {
+          const createRes = await createWorkspace('Default Workspace');
+          if (createRes?.data) {
+            list = [createRes.data];
+          }
+        } catch (createErr) {
+          console.error('Failed to create default workspace for new user:', createErr);
+        }
+      }
+
       setWorkspaces(list);
       setActiveWorkspace(prev => {
         if (!prev && list.length > 0) return list[0];
