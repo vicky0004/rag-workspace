@@ -155,7 +155,8 @@ export default function DocumentsPage() {
         </div>
       ) : (
         <div className="docs-table-wrapper">
-          <table className="docs-table">
+          {/* Desktop Table View */}
+          <table className="docs-table docs-table--desktop">
             <thead>
               <tr>
                 <th>Filename</th>
@@ -197,6 +198,40 @@ export default function DocumentsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Card View (No Horizontal Scroll) */}
+          <div className="docs-mobile-cards">
+            {documents.map(doc => (
+              <div key={doc.id} className="doc-mobile-card">
+                <div className="doc-mobile-card-top">
+                  <div className="doc-name">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span className="doc-filename-text">{doc.filename}</span>
+                  </div>
+                  <button
+                    className="btn-icon btn-icon--danger doc-mobile-delete-btn"
+                    onClick={() => handleDelete(doc)}
+                    title="Delete document"
+                    id={`btn-delete-doc-mob-${doc.id}`}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                      <path d="M10 11v6M14 11v6"/>
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="doc-mobile-card-meta">
+                  <StatusBadge status={doc.status} />
+                  <span className="doc-date">{new Date(doc.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
