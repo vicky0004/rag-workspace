@@ -121,17 +121,25 @@ export default function Sidebar({ activePage, onNavigate }) {
         {/* Brand Header */}
         <div className="sidebar-brand">
           <div className="brand-logo">
-            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-              <rect width="40" height="40" rx="10" fill="url(#brand-grad)"/>
-              <path d="M10 28L20 12L30 28" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M14 22H26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              <defs>
-                <linearGradient id="brand-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#6366f1"/><stop offset="1" stopColor="#a855f7"/>
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
+  <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+    <rect width="40" height="40" rx="10" fill="#000000"/>
+
+    <path
+      d="M10 28L20 12L30 28"
+      stroke="#D4AF37"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+
+    <path
+      d="M14 22H26"
+      stroke="#D4AF37"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+  </svg>
+</div>
           <div className="brand-text">
             <span className="brand-title">RAG Assistant</span>
             <span className="brand-subtitle">Smart Documents</span>
