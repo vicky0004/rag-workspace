@@ -219,11 +219,17 @@
 /* Mobile Responsive */
 @media (max-width: 640px) {
   .documents-page {
-    padding: 1rem 1rem 0.5rem 1rem;
-    gap: 1rem;
+    padding: 0.85rem 0.85rem 0 0.85rem;
+    gap: 0.75rem;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .docs-header {
+    flex-shrink: 0;
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
@@ -234,20 +240,33 @@
     display: none !important;
   }
 
+  .docs-table-wrapper {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 0.5rem;
+  }
+
+  .docs-empty,
+  .docs-loading {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .docs-mobile-bottom-bar {
     display: flex;
-    position: sticky;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    margin: auto -1rem 0 -1rem;
-    padding: 0.75rem 1rem;
-    background: rgba(15, 23, 42, 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    flex-shrink: 0;
+    margin: 0 -0.85rem;
+    padding: 0.65rem 0.85rem;
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+    background: var(--surface);
     border-top: 1px solid var(--border);
     z-index: 20;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
   }
 
   .docs-mobile-upload-btn {
@@ -260,11 +279,6 @@
     font-size: 0.92rem;
     font-weight: 600;
     border-radius: 10px;
-  }
-
-  .docs-table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .docs-table {

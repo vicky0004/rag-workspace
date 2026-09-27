@@ -683,4 +683,17 @@
   .btn-mobile-close {
     display: flex;
   }
+
+  .history-dots-btn {
+    opacity: 0.85;
+    padding: 0.25rem 0.35rem;
+    min-width: 26px;
+    min-height: 26px;
+  }
+}
+
+@media (hover: none) {
+  .history-dots-btn {
+    opacity: 0.85;
+  }
 }
