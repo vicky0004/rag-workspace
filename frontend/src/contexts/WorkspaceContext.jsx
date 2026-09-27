@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getWorkspaces, createWorkspace, deleteWorkspace as deleteWs } from '../lib/api';
+import { getWorkspaces, createWorkspace, renameWorkspace, deleteWorkspace } from '../lib/api';
 import { useAuth } from './AuthContext';
 
 const WorkspaceContext = createContext(null);
@@ -15,10 +15,16 @@ export function WorkspaceProvider({ children }) {
     setLoading(true);
     try {
       const res = await getWorkspaces();
-      setWorkspaces(res.data || []);
-      if (res.data?.length > 0 && !activeWorkspace) {
-        setActiveWorkspace(res.data[0]);
-      }
+      const list = res.data || [];
+      setWorkspaces(list);
+      setActiveWorkspace(prev => {
+        if (!prev && list.length > 0) return list[0];
+        if (prev) {
+          const found = list.find(w => w.id === prev.id);
+          return found || list[0] || null;
+        }
+        return null;
+      });
     } catch (e) {
       console.error('Failed to load workspaces', e);
     } finally {
@@ -32,16 +38,32 @@ export function WorkspaceProvider({ children }) {
 
   const createNew = async (name) => {
     const res = await createWorkspace(name);
-    await loadWorkspaces();
-    setActiveWorkspace(res.data);
-    return res.data;
+    const newWs = res.data;
+    setWorkspaces(prev => [...prev, newWs]);
+    setActiveWorkspace(newWs);
+    return newWs;
   };
 
-  const deleteActive = async (id) => {
-    await deleteWs(id);
-    const remaining = workspaces.filter(w => w.id !== id);
-    setWorkspaces(remaining);
-    setActiveWorkspace(remaining[0] || null);
+  const renameWs = async (id, name) => {
+    const res = await renameWorkspace(id, name);
+    const updated = res.data;
+    setWorkspaces(prev => prev.map(w => w.id === id ? updated : w));
+    setActiveWorkspace(prev => prev?.id === id ? updated : prev);
+    return updated;
+  };
+
+  const deleteWs = async (id) => {
+    await deleteWorkspace(id);
+    setWorkspaces(prev => {
+      const remaining = prev.filter(w => w.id !== id);
+      setActiveWorkspace(curr => {
+        if (curr?.id === id) {
+          return remaining[0] || null;
+        }
+        return curr;
+      });
+      return remaining;
+    });
   };
 
   const switchWorkspace = (ws) => setActiveWorkspace(ws);
@@ -53,7 +75,9 @@ export function WorkspaceProvider({ children }) {
       loading,
       switchWorkspace,
       createNew,
-      deleteActive,
+      renameWs,
+      deleteWs,
+      deleteActive: deleteWs,
       refresh: loadWorkspaces,
     }}>
       {children}

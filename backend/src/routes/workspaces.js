@@ -46,6 +46,43 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /api/workspaces/:workspaceId — rename a workspace
+router.patch('/:workspaceId', requireAuth, async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Workspace name is required' });
+    }
+
+    const { data: ws, error: wsErr } = await supabase
+      .from('workspaces')
+      .select('id')
+      .eq('id', workspaceId)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (wsErr || !ws) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    const { data, error } = await supabase
+      .from('workspaces')
+      .update({ name: name.trim() })
+      .eq('id', workspaceId)
+      .select('id, name, created_at')
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Update workspace error:', err);
+    res.status(500).json({ success: false, message: 'Failed to rename workspace' });
+  }
+});
+
 // DELETE /api/workspaces/:workspaceId — delete a workspace (only owner)
 router.delete('/:workspaceId', requireAuth, async (req, res) => {
   try {

@@ -30,6 +30,7 @@ api.interceptors.response.use(
 // Workspaces
 export const getWorkspaces = () => api.get('/api/workspaces').then(r => r.data);
 export const createWorkspace = (name) => api.post('/api/workspaces', { name }).then(r => r.data);
+export const renameWorkspace = (id, name) => api.patch(`/api/workspaces/${id}`, { name }).then(r => r.data);
 export const deleteWorkspace = (id) => api.delete(`/api/workspaces/${id}`).then(r => r.data);
 
 // Documents

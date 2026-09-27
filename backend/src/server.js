@@ -9,14 +9,24 @@ import dashboardRoutes from './routes/dashboard.js';
 const app = express();
 
 const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
+  'http://127.0.0.1:5175',
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no Origin header (Postman, curl, same-origin)
+    // Allow requests with no Origin header (Postman, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Allow matching exact or localhost origins
+    if (ALLOWED_ORIGINS.includes(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
@@ -24,7 +34,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Handle pre-flight OPTIONS for all routes (Express 5: no wildcard '*')
+// Handle pre-flight OPTIONS for all routes (Express 5: regex)
 app.options(/(.*)/, cors());
 
 // ── Request logger (dev) ─────────────────────────────────────────────────────

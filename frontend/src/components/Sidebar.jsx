@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkspace } from '../contexts/WorkspaceContext';
+import WorkspaceModal from './WorkspaceModal';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
@@ -37,119 +38,178 @@ const NAV_ITEMS = [
 
 export default function Sidebar({ activePage, onNavigate }) {
   const { user, signOut } = useAuth();
-  const { workspaces, activeWorkspace, switchWorkspace, createNew, loading } = useWorkspace();
-  const [newWsName, setNewWsName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [showNewWs, setShowNewWs] = useState(false);
+  const { workspaces, activeWorkspace, switchWorkspace, loading } = useWorkspace();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('create');
+  const dropdownRef = useRef(null);
 
-  const handleCreateWs = async (e) => {
-    e.preventDefault();
-    if (!newWsName.trim()) return;
-    setCreating(true);
-    try {
-      await createNew(newWsName.trim());
-      setNewWsName('');
-      setShowNewWs(false);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setCreating(false);
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
     }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setModalOpen(true);
+    setDropdownOpen(false);
+  };
+
+  const openManageModal = () => {
+    setModalMode('manage');
+    setModalOpen(true);
+    setDropdownOpen(false);
   };
 
   return (
-    <aside className="sidebar">
-      {/* Logo */}
-      <div className="sidebar-logo">
-        <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-          <rect width="40" height="40" rx="10" fill="url(#grad2)"/>
-          <path d="M10 28L20 12L30 28" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M14 22H26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-          <defs>
-            <linearGradient id="grad2" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-              <stop stopColor="#6366f1"/><stop offset="1" stopColor="#a855f7"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <span>RAG Workspace</span>
-      </div>
-
-      {/* Workspace switcher */}
-      <div className="ws-section">
-        <div className="ws-section-header">
-          <span>Workspaces</span>
-          <button
-            className="ws-add-btn"
-            onClick={() => setShowNewWs(!showNewWs)}
-            title="New workspace"
-            id="btn-new-workspace"
-          >+</button>
+    <>
+      <aside className="sidebar">
+        {/* Brand Header */}
+        <div className="sidebar-brand">
+          <div className="brand-logo">
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+              <rect width="40" height="40" rx="10" fill="url(#brand-grad)"/>
+              <path d="M10 28L20 12L30 28" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M14 22H26" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              <defs>
+                <linearGradient id="brand-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop stopColor="#6366f1"/><stop offset="1" stopColor="#a855f7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div className="brand-text">
+            <span className="brand-title">RAG Assistant</span>
+            <span className="brand-subtitle">Smart Documents</span>
+          </div>
         </div>
 
-        {showNewWs && (
-          <form onSubmit={handleCreateWs} className="new-ws-form">
-            <input
-              type="text"
-              value={newWsName}
-              onChange={e => setNewWsName(e.target.value)}
-              placeholder="Workspace name"
-              autoFocus
-              id="input-workspace-name"
-            />
-            <button type="submit" className="btn-primary btn-sm" disabled={creating || !newWsName.trim()}>
-              {creating ? <span className="spinner spinner--sm" /> : 'Create'}
-            </button>
-          </form>
-        )}
+        {/* Workspace Selector Dropdown */}
+        <div className="workspace-selector-container" ref={dropdownRef}>
+          <div className="workspace-header-label">Workspace</div>
+          <button
+            className={`workspace-trigger ${dropdownOpen ? 'workspace-trigger--open' : ''}`}
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            id="btn-workspace-trigger"
+          >
+            <div className="ws-avatar">
+              {activeWorkspace?.name ? activeWorkspace.name.slice(0, 2).toUpperCase() : 'WS'}
+            </div>
+            <div className="ws-trigger-info">
+              <span className="ws-trigger-name">{activeWorkspace?.name || (loading ? 'Loading…' : 'Select Workspace')}</span>
+              <span className="ws-trigger-count">{workspaces.length} workspace{workspaces.length !== 1 ? 's' : ''}</span>
+            </div>
+            <svg className={`ws-chevron ${dropdownOpen ? 'ws-chevron--open' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
 
-        <div className="ws-list">
-          {loading && <div className="ws-loading"><span className="spinner spinner--sm" /></div>}
-          {workspaces.map(ws => (
-            <button
-              key={ws.id}
-              className={`ws-item ${activeWorkspace?.id === ws.id ? 'ws-item--active' : ''}`}
-              onClick={() => switchWorkspace(ws)}
-              id={`btn-workspace-${ws.id}`}
-            >
-              <span className="ws-dot" />
-              <span className="ws-name">{ws.name}</span>
-            </button>
-          ))}
-          {!loading && workspaces.length === 0 && (
-            <p className="ws-empty">No workspaces yet</p>
+          {/* Dropdown Menu */}
+          {dropdownOpen && (
+            <div className="workspace-dropdown-menu">
+              <div className="dropdown-section-title">All Workspaces</div>
+              <div className="dropdown-ws-list">
+                {workspaces.map(ws => {
+                  const isActive = activeWorkspace?.id === ws.id;
+                  return (
+                    <button
+                      key={ws.id}
+                      className={`dropdown-ws-item ${isActive ? 'dropdown-ws-item--active' : ''}`}
+                      onClick={() => {
+                        switchWorkspace(ws);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <span className="dropdown-ws-dot" />
+                      <span className="dropdown-ws-name">{ws.name}</span>
+                      {isActive && (
+                        <svg className="dropdown-ws-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="dropdown-divider" />
+
+              <div className="dropdown-actions">
+                <button className="dropdown-action-btn" onClick={openCreateModal} id="btn-dropdown-create-ws">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                  <span>New Workspace</span>
+                </button>
+                <button className="dropdown-action-btn" onClick={openManageModal} id="btn-dropdown-manage-ws">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                  </svg>
+                  <span>Manage Workspaces</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="sidebar-nav">
-        {NAV_ITEMS.map(item => (
-          <button
-            key={item.id}
-            className={`nav-item ${activePage === item.id ? 'nav-item--active' : ''}`}
-            onClick={() => onNavigate(item.id)}
-            id={`nav-${item.id}`}
-          >
-            {item.icon}
-            <span>{item.label}</span>
+        {/* Navigation */}
+        <nav className="sidebar-nav">
+          <div className="nav-section-label">Navigation</div>
+          {NAV_ITEMS.map(item => (
+            <button
+              key={item.id}
+              className={`nav-item ${activePage === item.id ? 'nav-item--active' : ''}`}
+              onClick={() => onNavigate(item.id)}
+              id={`nav-${item.id}`}
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Quick Action in Sidebar */}
+        <div className="sidebar-quick-action">
+          <button className="btn-new-ws-sidebar" onClick={openCreateModal}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Create Workspace</span>
           </button>
-        ))}
-      </nav>
-
-      {/* User / sign out */}
-      <div className="sidebar-footer">
-        <div className="user-info">
-          <div className="user-avatar">{user?.email?.[0]?.toUpperCase()}</div>
-          <span className="user-email">{user?.email}</span>
         </div>
-        <button className="signout-btn" onClick={signOut} title="Sign out" id="btn-sign-out">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-        </button>
-      </div>
-    </aside>
+
+        {/* User Footer */}
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <div className="user-avatar">{user?.email?.[0]?.toUpperCase()}</div>
+            <div className="user-meta">
+              <span className="user-email">{user?.email}</span>
+              <span className="user-plan">Free Workspace</span>
+            </div>
+          </div>
+          <button className="signout-btn" onClick={signOut} title="Sign out" id="btn-sign-out">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      {/* Workspace Management / Creation Modal */}
+      <WorkspaceModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        defaultMode={modalMode}
+      />
+    </>
   );
 }
