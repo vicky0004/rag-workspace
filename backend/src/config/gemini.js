@@ -3,8 +3,12 @@ import { GoogleGenAI } from '@google/genai';
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const GENERATION_MODELS = [
-  'gemini-flash-latest',
-  'gemini-3.7-flash',
+  'gemini-3.5-flash-lite',   // 500/day, 15 RPM: best primary
+  'gemini-3.1-flash-lite',   // 500/day, 15 RPM
+  'gemini-3.6-flash',        // 20/day, best quality still unused
+  'gemini-3-flash',          // 20/day
+  'gemini-2.5-flash',        // 20/day
+  'gemini-2.5-flash-lite',   // 20/day
 ];
 
 /**
